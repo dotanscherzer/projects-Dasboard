@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createProject, Project } from '../api/projects';
-import { createService, Service } from '../api/services';
+import { createProject, Project, Service } from '../api/projects';
+import { createService } from '../api/services';
 import ServiceForm from './ServiceForm';
 import './AddProjectWizard.css';
 
