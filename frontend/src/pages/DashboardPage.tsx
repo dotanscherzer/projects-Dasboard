@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../hooks/useProjects';
 import ProjectCard from '../components/ProjectCard';
 import FilterBar from '../components/FilterBar';
+import AddProjectWizard from '../components/AddProjectWizard';
 import { getSummary, Summary } from '../api/summary';
 import { useEffect } from 'react';
 import './DashboardPage.css';
@@ -15,8 +16,9 @@ const DashboardPage: React.FC = () => {
     priority?: string;
     tag?: string;
   }>({});
-  const { projects, loading, error } = useProjects(filters);
+  const { projects, loading, error, refetch } = useProjects(filters);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -35,6 +37,9 @@ const DashboardPage: React.FC = () => {
       <header className="dashboard-header">
         <h1>Project Ops Dashboard</h1>
         <div className="header-actions">
+          <button onClick={() => setShowWizard(true)} className="add-project-button">
+            + Add New Project
+          </button>
           <span className="user-info">Welcome, {user?.username}</span>
           <button onClick={logout} className="logout-button">
             Logout
@@ -114,6 +119,16 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showWizard && (
+        <AddProjectWizard
+          onClose={() => setShowWizard(false)}
+          onSuccess={() => {
+            refetch();
+            setShowWizard(false);
+          }}
+        />
+      )}
     </div>
   );
 };

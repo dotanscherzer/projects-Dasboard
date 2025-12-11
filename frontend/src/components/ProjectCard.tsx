@@ -82,9 +82,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           <span className="project-owner">Owner: {project.owner}</span>
         </div>
       </div>
-      <div className="project-next-action">
-        <strong>Next:</strong> {project.nextAction}
-      </div>
+      {project.nextAction && (
+        <div className="project-next-action">
+          <strong>Next:</strong> {project.nextAction}
+        </div>
+      )}
       {project.tags && project.tags.length > 0 && (
         <div className="project-tags">
           {project.tags.map((tag) => (

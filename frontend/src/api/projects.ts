@@ -9,7 +9,7 @@ export interface Project {
   status: 'active' | 'paused' | 'deprecated';
   lifecycleStage: 'idea' | 'planned' | 'in_development' | 'ready_for_deploy' | 'live' | 'maintenance' | 'on_hold';
   priority: 'low' | 'medium' | 'high';
-  nextAction: string;
+  nextAction?: string;
   targetReleaseDate?: string;
   tags: string[];
   createdAt: string;

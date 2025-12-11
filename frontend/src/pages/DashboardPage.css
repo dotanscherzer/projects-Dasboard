@@ -25,6 +25,22 @@
   gap: 1rem;
 }
 
+.add-project-button {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.add-project-button:hover {
+  background: #2563eb;
+}
+
 .user-info {
   color: #6b7280;
   font-size: 0.875rem;

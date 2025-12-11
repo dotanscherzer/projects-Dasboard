@@ -8,7 +8,7 @@ export interface IProject extends Document {
   status: 'active' | 'paused' | 'deprecated';
   lifecycleStage: 'idea' | 'planned' | 'in_development' | 'ready_for_deploy' | 'live' | 'maintenance' | 'on_hold';
   priority: 'low' | 'medium' | 'high';
-  nextAction: string;
+  nextAction?: string;
   targetReleaseDate?: Date;
   tags: string[];
   createdAt: Date;
@@ -55,7 +55,7 @@ const ProjectSchema = new Schema<IProject>(
     },
     nextAction: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     targetReleaseDate: {

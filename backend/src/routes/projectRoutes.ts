@@ -80,8 +80,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       tags,
     } = req.body;
 
-    if (!name || !code || !owner || !nextAction) {
-      res.status(400).json({ message: 'Name, code, owner, and nextAction are required' });
+    if (!name || !code || !owner) {
+      res.status(400).json({ message: 'Name, code, and owner are required' });
       return;
     }
 
