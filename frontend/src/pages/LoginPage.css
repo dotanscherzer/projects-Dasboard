@@ -90,3 +90,28 @@
   cursor: not-allowed;
 }
 
+.toggle-mode {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  color: #667eea;
+  cursor: pointer;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  padding: 0.5rem;
+  transition: color 0.2s;
+}
+
+.toggle-button:hover:not(:disabled) {
+  color: #5568d3;
+}
+
+.toggle-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

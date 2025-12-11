@@ -4,11 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,22 +19,49 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(username, email, password);
+      }
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      // Extract error message from axios error response
+      const errorMessage = err.response?.data?.message || err.message || (isLogin ? 'Login failed' : 'Registration failed');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setUsername('');
+    setEmail('');
+    setPassword('');
   };
 
   return (
     <div className="login-page">
       <div className="login-container">
         <h1>Project Ops Dashboard</h1>
-        <h2>Login</h2>
+        <h2>{isLogin ? 'Login' : 'Register'}</h2>
         <form onSubmit={handleSubmit} className="login-form">
           {error && <div className="error-message">{error}</div>}
+          {!isLogin && (
+            <div className="form-group">
+              <label htmlFor="username">Username:</label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required={!isLogin}
+                disabled={loading}
+              />
+            </div>
+          )}
           <div className="form-group">
             <label htmlFor="email">Email:</label>
             <input
@@ -56,8 +85,18 @@ const LoginPage: React.FC = () => {
             />
           </div>
           <button type="submit" disabled={loading} className="login-button">
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? (isLogin ? 'Logging in...' : 'Registering...') : (isLogin ? 'Login' : 'Register')}
           </button>
+          <div className="toggle-mode">
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="toggle-button"
+              disabled={loading}
+            >
+              {isLogin ? "Don't have an account? Register" : 'Already have an account? Login'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
