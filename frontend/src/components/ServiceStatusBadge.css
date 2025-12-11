@@ -1,0 +1,67 @@
+.service-status-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.status-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-text {
+  font-weight: 500;
+  text-transform: capitalize;
+  font-size: 0.875rem;
+}
+
+.status-secondary {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.provider-status-label {
+  font-weight: 500;
+}
+
+.provider-status-value {
+  font-family: monospace;
+  color: #374151;
+}
+
+.status-automation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.automation-label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.automation-status {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.automation-time {
+  color: #6b7280;
+  font-size: 0.7rem;
+}
+

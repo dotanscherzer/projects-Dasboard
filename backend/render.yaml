@@ -1,0 +1,109 @@
+services:
+  - type: web
+    name: project-ops-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: INTERNAL_SECRET
+        sync: false
+      - key: RENDER_API_KEY
+        sync: false
+      - key: NETLIFY_API_TOKEN
+        sync: false
+      - key: NETLIFY_SITE_ID
+        sync: false
+      - key: MONGODB_ATLAS_API_PUBLIC_KEY
+        sync: false
+      - key: MONGODB_ATLAS_API_PRIVATE_KEY
+        sync: false
+      - key: MONGODB_ATLAS_PROJECT_ID
+        sync: false
+      - key: MAKE_WEBHOOK_SECRET
+        sync: false
+
+  - type: cron
+    name: health-sync
+    schedule: "*/5 * * * *"
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/cron-health.js
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: project-ops-backend
+          property: url
+      - key: INTERNAL_SECRET
+        sync: false
+
+  - type: cron
+    name: deploy-sync
+    schedule: "*/15 * * * *"
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/cron-deploys.js
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: project-ops-backend
+          property: url
+      - key: INTERNAL_SECRET
+        sync: false
+
+  - type: cron
+    name: db-health-sync
+    schedule: "0 * * * *"
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/cron-db-health.js
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: project-ops-backend
+          property: url
+      - key: INTERNAL_SECRET
+        sync: false
+
+  - type: cron
+    name: automation-health-sync
+    schedule: "*/12 * * * *"
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/cron-automation-health.js
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: project-ops-backend
+          property: url
+      - key: INTERNAL_SECRET
+        sync: false
+
+  - type: cron
+    name: metrics-cleanup
+    schedule: "0 2 * * *"
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/cron-cleanup.js
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: project-ops-backend
+          property: url
+      - key: INTERNAL_SECRET
+        sync: false
+
