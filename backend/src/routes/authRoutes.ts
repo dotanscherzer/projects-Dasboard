@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/env';
 import User from '../models/User';
 
@@ -43,7 +43,7 @@ router.post('/register', async (req: Request, res: Response) => {
         role: user.role,
       },
       config.jwtSecret,
-      { expiresIn: config.jwtExpiresIn }
+      { expiresIn: config.jwtExpiresIn } as SignOptions
     );
 
     res.status(201).json({
@@ -99,7 +99,7 @@ router.post('/login', async (req: Request, res: Response) => {
         role: user.role,
       },
       config.jwtSecret,
-      { expiresIn: config.jwtExpiresIn }
+      { expiresIn: config.jwtExpiresIn } as SignOptions
     );
 
     res.json({
