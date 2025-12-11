@@ -89,13 +89,30 @@ git push -u origin main
 
 3. **Deploy**:
    - Render will automatically deploy when you push to the main branch
-   - The `render.yaml` file configures:
-     - Web service (main API)
-     - 5 cron jobs for scheduled syncs (health, deploys, db-health, automation-health, cleanup)
+   - The `render.yaml` file configures the web service. Scheduled jobs now run inside the app using `node-cron` (no Render cron jobs needed).
 
 4. **Get Backend URL**:
    - After deployment, note your backend URL (e.g., `https://project-ops-backend.onrender.com`)
    - This will be needed for frontend configuration
+
+#### Cron Jobs (Free, In-App via node-cron)
+
+Scheduled tasks now run inside the backend service using `node-cron` (no separate Render cron jobs). All schedules are configured in `backend/src/scheduler.ts` and start automatically when the server boots.
+
+**Job list and schedules (UTC)**:
+- `health-sync`: every 5 minutes (`*/5 * * * *`)
+- `deploy-sync`: every 15 minutes (`*/15 * * * *`)
+- `db-health-sync`: hourly at minute 0 (`0 * * * *`)
+- `automation-health-sync`: every 12 minutes (`*/12 * * * *`)
+- `metrics-cleanup`: daily at 2:00 AM UTC (`0 2 * * *`)
+
+**Required environment variables (set on the web service)**:
+- `API_URL`: The public URL of your backend (e.g., `https://project-ops-backend.onrender.com`)
+- `INTERNAL_SECRET`: Must match the backend's `INTERNAL_SECRET`
+
+**Notes**:
+- No Render cron services are needed; keep only the web service in `render.yaml`.
+- If `API_URL` or `INTERNAL_SECRET` are missing, the scheduler logs a warning and skips starting.
 
 #### Frontend (Netlify)
 
@@ -165,6 +182,113 @@ See `backend/README.md` for detailed API documentation.
 - **Render Build Fails**: Check build logs, ensure all dependencies are listed in `package.json`
 - **Netlify Build Fails**: Verify base directory is set to `frontend` in Netlify settings
 - **Environment Variables Not Loading**: Ensure variables are set in the correct service/environment
+- **"Cannot find module dist/server.js" Error**: 
+  - If you created the service manually (not via Blueprint), Render may not be using `render.yaml`
+  - **Solution 1 (Recommended)**: Delete the service and recreate it via Blueprint:
+    - Go to Render Dashboard → "New +" → "Blueprint"
+    - Connect your Git repository
+    - Render will automatically detect `render.yaml` and create all services with correct build/start commands
+  - **Solution 2**: Manually update service settings in Render dashboard (detailed steps below)
+
+### Manual Render Service Configuration (Option 2 - Detailed Steps)
+
+If you created your services manually in Render, follow these steps to configure each service:
+
+#### Step 1: Update Web Service (project-ops-backend)
+
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Click on your **project-ops-backend** service (or the name you gave it)
+3. Click on **Settings** in the left sidebar
+4. Scroll down to **Build & Deploy** section
+5. Update the following fields:
+   - **Root Directory**: Enter `backend`
+   - **Build Command**: Enter `npm install && npm run build`
+   - **Start Command**: Enter `npm start`
+6. Scroll to the top and click **Save Changes**
+7. Render will automatically trigger a new deployment
+
+#### Step 2: Update Cron Job - health-sync
+
+1. In Render Dashboard, click on your **health-sync** cron job
+2. Click on **Settings** in the left sidebar
+3. Scroll down to **Build & Deploy** section
+4. Update the following fields:
+   - **Root Directory**: Enter `backend`
+   - **Build Command**: Enter `npm install && npm run build`
+   - **Start Command**: Enter `node dist/cron-health.js`
+5. Click **Save Changes**
+
+#### Step 3: Update Cron Job - deploy-sync
+
+1. In Render Dashboard, click on your **deploy-sync** cron job
+2. Click on **Settings** in the left sidebar
+3. Scroll down to **Build & Deploy** section
+4. Update the following fields:
+   - **Root Directory**: Enter `backend`
+   - **Build Command**: Enter `npm install && npm run build`
+   - **Start Command**: Enter `node dist/cron-deploys.js`
+5. Click **Save Changes**
+
+#### Step 4: Update Cron Job - db-health-sync
+
+1. In Render Dashboard, click on your **db-health-sync** cron job
+2. Click on **Settings** in the left sidebar
+3. Scroll down to **Build & Deploy** section
+4. Update the following fields:
+   - **Root Directory**: Enter `backend`
+   - **Build Command**: Enter `npm install && npm run build`
+   - **Start Command**: Enter `node dist/cron-db-health.js`
+5. Click **Save Changes**
+
+#### Step 5: Update Cron Job - automation-health-sync
+
+1. In Render Dashboard, click on your **automation-health-sync** cron job
+2. Click on **Settings** in the left sidebar
+3. Scroll down to **Build & Deploy** section
+4. Update the following fields:
+   - **Root Directory**: Enter `backend`
+   - **Build Command**: Enter `npm install && npm run build`
+   - **Start Command**: Enter `node dist/cron-automation-health.js`
+5. Click **Save Changes**
+
+#### Step 6: Update Cron Job - metrics-cleanup
+
+1. In Render Dashboard, click on your **metrics-cleanup** cron job
+2. Click on **Settings** in the left sidebar
+3. Scroll down to **Build & Deploy** section
+4. Update the following fields:
+   - **Root Directory**: Enter `backend`
+   - **Build Command**: Enter `npm install && npm run build`
+   - **Start Command**: Enter `node dist/cron-cleanup.js`
+5. Click **Save Changes**
+
+#### Step 7: Verify Environment Variables
+
+For each service, verify that environment variables are set correctly:
+
+**Web Service (project-ops-backend)** - Go to **Environment** tab and ensure these are set:
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN` (should be `7d`)
+- `INTERNAL_SECRET`
+- `NODE_ENV` (should be `production`)
+- `PORT` (should be `10000`)
+- Optional: `RENDER_API_KEY`, `NETLIFY_API_TOKEN`, `NETLIFY_SITE_ID`, `MONGODB_ATLAS_API_PUBLIC_KEY`, `MONGODB_ATLAS_API_PRIVATE_KEY`, `MONGODB_ATLAS_PROJECT_ID`, `MAKE_WEBHOOK_SECRET`
+
+**All Cron Jobs** - Go to **Environment** tab for each cron job and ensure:
+- `API_URL` - Should be set to your web service URL (or use "Link to Service" feature)
+- `INTERNAL_SECRET` - Must match the `INTERNAL_SECRET` in your web service
+
+#### Step 8: Trigger New Deployment
+
+After updating all settings:
+1. Go back to your **project-ops-backend** web service
+2. Click on **Manual Deploy** → **Deploy latest commit**
+3. Monitor the build logs to ensure:
+   - Build command runs: `npm install && npm run build`
+   - TypeScript compiles successfully (you should see `dist/` folder created)
+   - Start command runs: `npm start`
+   - Server starts without "Cannot find module" errors
 
 ## Key Concepts
 

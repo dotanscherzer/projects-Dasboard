@@ -9,6 +9,7 @@ import workItemRoutes from './routes/workItemRoutes';
 import summaryRoutes from './routes/summaryRoutes';
 import internalRoutes from './routes/internalRoutes';
 import authRoutes from './routes/authRoutes';
+import { startScheduler } from './scheduler';
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use((req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
+    startScheduler();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
