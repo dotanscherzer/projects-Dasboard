@@ -74,8 +74,9 @@ git push -u origin main
    - Render will automatically detect `render.yaml` in the root directory
 
 2. **Environment Variables Setup**:
+   - 📖 **See [SETUP_GUIDE.md](SETUP_GUIDE.md) for detailed step-by-step instructions**
    - In Render dashboard, go to your service → Environment
-   - Add the following variables (from `backend/.env.example`):
+   - Add the following variables:
      - `MONGODB_URI` - Your MongoDB Atlas connection string
      - `JWT_SECRET` - A secure random string for JWT tokens
      - `INTERNAL_SECRET` - A secure random string for internal API authentication

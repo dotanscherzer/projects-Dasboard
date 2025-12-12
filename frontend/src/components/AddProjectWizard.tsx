@@ -179,8 +179,45 @@ const AddProjectWizard: React.FC<AddProjectWizardProps> = ({ onClose, onSuccess 
         ...automationServices.map((s) => ({ ...s, projectId: newProject._id, type: 'automation' as const })),
       ];
 
+      // Create services with better error handling
+      const serviceErrors: string[] = [];
+      const createdServices: string[] = [];
+      
       for (const service of allServices) {
-        await createService(service);
+        try {
+          // Validate required fields
+          if (!service.name || !service.provider || !service.providerInternalId) {
+            serviceErrors.push(`${service.name || 'Unnamed service'}: Missing required fields (name, provider, or providerInternalId)`);
+            continue;
+          }
+          await createService(service);
+          createdServices.push(service.name || 'Unnamed service');
+        } catch (err: any) {
+          const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
+          serviceErrors.push(`${service.name || 'Unnamed service'}: ${errorMsg}`);
+          console.error('Failed to create service:', service, err);
+        }
+      }
+
+      // Log results
+      if (allServices.length > 0) {
+        console.log(`Created ${createdServices.length} of ${allServices.length} services`);
+        if (createdServices.length > 0) {
+          console.log('Successfully created services:', createdServices);
+        }
+        if (serviceErrors.length > 0) {
+          console.error('Failed to create services:', serviceErrors);
+        }
+      }
+
+      // Show warnings if some services failed, but don't block project creation
+      if (serviceErrors.length > 0) {
+        const errorMessage = `Project created successfully, but ${serviceErrors.length} service(s) failed to create: ${serviceErrors.join('; ')}`;
+        setError(errorMessage);
+        // Still navigate but show error
+        setTimeout(() => {
+          alert(errorMessage); // Show alert so user sees it even after navigation
+        }, 100);
       }
 
       if (onSuccess) {
