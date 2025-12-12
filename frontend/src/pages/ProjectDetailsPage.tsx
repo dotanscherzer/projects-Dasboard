@@ -46,7 +46,10 @@ const ProjectDetailsPage: React.FC = () => {
     );
   }
 
-  const { project, services, workItems } = projectDetails;
+  const { project, services = [], workItems = [] } = projectDetails;
+
+  // Debug logging
+  console.log('ProjectDetails:', { project, servicesCount: services?.length, services });
 
   return (
     <div className="project-details-page">
@@ -85,7 +88,7 @@ const ProjectDetailsPage: React.FC = () => {
             )}
             <div className="info-item full-width">
               <label>Next Action:</label>
-              <span>{project.nextAction}</span>
+              <span>{project.nextAction || '—'}</span>
             </div>
             {project.description && (
               <div className="info-item full-width">
@@ -97,37 +100,48 @@ const ProjectDetailsPage: React.FC = () => {
         </div>
 
         <div className="services-section">
-          <h2>Services</h2>
-          {services.length === 0 ? (
+          <h2>Services {services && services.length > 0 && `(${services.length})`}</h2>
+          {!services || services.length === 0 ? (
             <div className="empty-state">No services found</div>
           ) : (
             <div className="services-list">
-              {services.map((service) => (
-                <div key={service._id} className="service-card">
-                  <div className="service-header">
-                    <h3>{service.name}</h3>
-                    <span className="service-type">{service.type}</span>
-                    <span className="service-provider">{service.provider}</span>
-                  </div>
-                  <ServiceStatusBadge service={service} />
-                  {service.url && (
-                    <a href={service.url} target="_blank" rel="noopener noreferrer" className="service-link">
-                      Visit Service
-                    </a>
-                  )}
-                  {metrics[service._id] && metrics[service._id].length > 0 && (
-                    <div className="service-metrics">
-                      {['health', 'response_time_ms', 'automation_status'].map((metricName) => {
-                        const metricData = metrics[service._id].filter((m) => m.metricName === metricName);
-                        if (metricData.length === 0) return null;
-                        return (
-                          <MetricsChart key={metricName} data={metricData} metricName={metricName} />
-                        );
-                      })}
+              {services.map((service) => {
+                if (!service || !service._id) {
+                  console.warn('Invalid service:', service);
+                  return null;
+                }
+                return (
+                  <div key={service._id} className="service-card">
+                    <div className="service-header">
+                      <h3>{service.name || 'Unnamed Service'}</h3>
+                      <span className="service-type">{service.type}</span>
+                      <span className="service-provider">{service.provider}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <ServiceStatusBadge service={service} />
+                    {service.url && (
+                      <a href={service.url} target="_blank" rel="noopener noreferrer" className="service-link">
+                        Visit Service
+                      </a>
+                    )}
+                    {service.dashboardUrl && (
+                      <a href={service.dashboardUrl} target="_blank" rel="noopener noreferrer" className="service-link" style={{ marginLeft: '0.5rem' }}>
+                        Dashboard
+                      </a>
+                    )}
+                    {metrics[service._id] && metrics[service._id].length > 0 && (
+                      <div className="service-metrics">
+                        {['health', 'response_time_ms', 'automation_status'].map((metricName) => {
+                          const metricData = metrics[service._id].filter((m) => m.metricName === metricName);
+                          if (metricData.length === 0) return null;
+                          return (
+                            <MetricsChart key={metricName} data={metricData} metricName={metricName} />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

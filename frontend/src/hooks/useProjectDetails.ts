@@ -11,9 +11,12 @@ export const useProjectDetails = (projectId: string) => {
       try {
         setLoading(true);
         const data = await getProjectDetails(projectId);
+        console.log('Fetched project details:', data);
+        console.log('Services in response:', data?.services, 'Count:', data?.services?.length);
         setProjectDetails(data);
         setError(null);
       } catch (err: any) {
+        console.error('Error fetching project details:', err);
         setError(err.message || 'Failed to fetch project details');
       } finally {
         setLoading(false);
