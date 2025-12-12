@@ -44,14 +44,6 @@ const ServiceStatusBadge: React.FC<ServiceStatusBadgeProps> = ({ service }) => {
         />
         <span className="status-text">{service.status}</span>
       </div>
-      {service.providerStatus && (
-        <div className="status-secondary">
-          <span className="provider-status-label">Provider:</span>
-          <span className="provider-status-value">
-            {JSON.stringify(service.providerStatus).substring(0, 50)}...
-          </span>
-        </div>
-      )}
       {service.type === 'automation' && service.lastRunStatus && (
         <div className="status-automation">
           <span className="automation-label">Last Run:</span>
