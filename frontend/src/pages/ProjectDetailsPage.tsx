@@ -107,28 +107,17 @@ const ProjectDetailsPage: React.FC = () => {
 
         <div className="services-section">
           <h2>Services {services && services.length > 0 && `(${services.length})`}</h2>
-          {/* Debug info */}
-          <div style={{ padding: '0.5rem', background: '#f0f0f0', marginBottom: '1rem', fontSize: '0.75rem' }}>
-            DEBUG: services = {Array.isArray(services) ? `Array(${services.length})` : typeof services}, 
-            length = {services?.length ?? 'undefined'}
-          </div>
           {!services || !Array.isArray(services) || services.length === 0 ? (
-            <div className="empty-state">
-              No services found
-              <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#666' }}>
-                Services type: {typeof services}, Is Array: {Array.isArray(services) ? 'Yes' : 'No'}, Length: {services?.length ?? 'undefined'}
-              </div>
-            </div>
+            <div className="empty-state">No services found</div>
           ) : (
             <div className="services-list">
               {services.map((service, index) => {
-                console.log(`Rendering service ${index}:`, service);
                 if (!service || !service._id) {
                   console.warn('Invalid service:', service);
                   return null;
                 }
                 return (
-                  <div key={service._id || `service-${index}`} className="service-card" style={{ border: '2px solid #3b82f6' }}>
+                  <div key={service._id || `service-${index}`} className="service-card">
                     <div className="service-header">
                       <h3>{service.name || 'Unnamed Service'}</h3>
                       <span className="service-type">{service.type}</span>

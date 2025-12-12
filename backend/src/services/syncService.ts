@@ -7,26 +7,32 @@ import { netlifyApi } from '../integrations';
 import { mongodbAtlasApi } from '../integrations';
 
 export const syncHealth = async (): Promise<void> => {
+  console.log('[sync] Starting health sync...');
+  
   // Sync Render services
   const renderServices = await Service.find({ provider: 'render' });
+  console.log(`[sync] Found ${renderServices.length} Render service(s) to sync`);
   for (const service of renderServices) {
     try {
+      console.log(`[sync] Syncing Render service: ${service.name} (${service.providerInternalId})`);
       const healthData = await renderApi.getServiceHealth(service.providerInternalId);
+      const status = healthData.service?.serviceDetails?.healthCheckStatus || 'unknown';
       await serviceService.updateService(service._id.toString(), {
-        status: healthData.service?.serviceDetails?.healthCheckStatus || 'unknown',
+        status,
         lastCheckedAt: new Date(),
         providerStatus: healthData,
       });
+      console.log(`[sync] Updated ${service.name} status to: ${status}`);
 
       // Create metric
       await metricService.createMetric({
         serviceId: service._id,
         metricName: 'health',
-        metricValue: healthData.service?.serviceDetails?.healthCheckStatus || 'unknown',
+        metricValue: status,
         collectedAt: new Date(),
       });
     } catch (error: any) {
-      console.error(`Error syncing Render service ${service._id}:`, error.message);
+      console.error(`[sync] Error syncing Render service ${service.name} (${service._id}):`, error.message);
       await serviceService.updateService(service._id.toString(), {
         status: 'down',
         lastCheckedAt: new Date(),
@@ -36,14 +42,18 @@ export const syncHealth = async (): Promise<void> => {
 
   // Sync Netlify sites
   const netlifyServices = await Service.find({ provider: 'netlify' });
+  console.log(`[sync] Found ${netlifyServices.length} Netlify service(s) to sync`);
   for (const service of netlifyServices) {
     try {
+      console.log(`[sync] Syncing Netlify service: ${service.name} (${service.providerInternalId})`);
       const siteData = await netlifyApi.getSiteStatus(service.providerInternalId);
+      const status = siteData.state === 'ready' ? 'up' : 'degraded';
       await serviceService.updateService(service._id.toString(), {
-        status: siteData.state === 'ready' ? 'up' : 'degraded',
+        status,
         lastCheckedAt: new Date(),
         providerStatus: siteData,
       });
+      console.log(`[sync] Updated ${service.name} status to: ${status}`);
 
       // Create metric
       await metricService.createMetric({
@@ -53,13 +63,15 @@ export const syncHealth = async (): Promise<void> => {
         collectedAt: new Date(),
       });
     } catch (error: any) {
-      console.error(`Error syncing Netlify service ${service._id}:`, error.message);
+      console.error(`[sync] Error syncing Netlify service ${service.name} (${service._id}):`, error.message);
       await serviceService.updateService(service._id.toString(), {
         status: 'down',
         lastCheckedAt: new Date(),
       });
     }
   }
+  
+  console.log('[sync] Health sync completed');
 };
 
 export const syncDeploys = async (): Promise<void> => {

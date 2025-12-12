@@ -24,6 +24,8 @@ const missingEnvWarning = () => {
 
 const scheduleJob = (job: CronJobConfig) => {
   cron.schedule(job.schedule, async () => {
+    const startTime = new Date().toISOString();
+    console.log(`[cron] ${job.name} started at ${startTime} (schedule: ${job.schedule})`);
     try {
       await axios.post(
         `${apiUrl}${job.endpoint}`,
@@ -34,9 +36,11 @@ const scheduleJob = (job: CronJobConfig) => {
           },
         }
       );
-      console.log(`[cron] ${job.name} completed successfully`);
+      const endTime = new Date().toISOString();
+      console.log(`[cron] ${job.name} completed successfully at ${endTime}`);
     } catch (error: any) {
-      console.error(`[cron] ${job.name} failed: ${error?.message ?? 'unknown error'}`);
+      const endTime = new Date().toISOString();
+      console.error(`[cron] ${job.name} failed at ${endTime}: ${error?.message ?? 'unknown error'}`);
     }
   });
 };
@@ -47,7 +51,27 @@ export const startScheduler = (): void => {
     return;
   }
 
+  console.log('[cron] ========================================');
+  console.log('[cron] Scheduler Initializing...');
+  console.log('[cron] API URL:', apiUrl);
+  console.log('[cron] Scheduled Jobs:');
+  jobs.forEach((job) => {
+    console.log(`[cron]   - ${job.name}: ${job.schedule} (${getScheduleDescription(job.schedule)})`);
+  });
+  console.log('[cron] ========================================');
+
   jobs.forEach(scheduleJob);
-  console.log('[cron] Scheduler initialized');
+  console.log('[cron] Scheduler initialized and running');
+};
+
+const getScheduleDescription = (schedule: string): string => {
+  const descriptions: Record<string, string> = {
+    '*/5 * * * *': 'Every 5 minutes',
+    '*/12 * * * *': 'Every 12 minutes',
+    '*/15 * * * *': 'Every 15 minutes',
+    '0 * * * *': 'Every hour (at minute 0)',
+    '0 2 * * *': 'Daily at 2:00 AM UTC',
+  };
+  return descriptions[schedule] || schedule;
 };
 
