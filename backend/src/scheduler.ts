@@ -1,59 +1,50 @@
-import axios from 'axios';
 import cron from 'node-cron';
+import { syncHealth, syncDeploys, syncDbHealth } from './services/syncService';
+import { syncAutomationHealth } from './services/automationService';
+import { cleanupMetrics } from './services/metricService';
 
 type CronJobConfig = {
   name: string;
   schedule: string;
-  endpoint: string;
+  handler: () => Promise<void>;
 };
-
-const apiUrl = process.env.API_URL;
-const internalSecret = process.env.INTERNAL_SECRET;
 
 const jobs: CronJobConfig[] = [
-  { name: 'health-sync', schedule: '*/5 * * * *', endpoint: '/internal/sync/health' },
-  { name: 'deploy-sync', schedule: '*/15 * * * *', endpoint: '/internal/sync/deploys' },
-  { name: 'db-health-sync', schedule: '0 * * * *', endpoint: '/internal/sync/db-health' },
-  { name: 'automation-health-sync', schedule: '*/12 * * * *', endpoint: '/internal/sync/automation-health' },
-  { name: 'metrics-cleanup', schedule: '0 2 * * *', endpoint: '/internal/sync/cleanup' },
+  { name: 'health-sync', schedule: '*/5 * * * *', handler: syncHealth },
+  { name: 'deploy-sync', schedule: '*/15 * * * *', handler: syncDeploys },
+  { name: 'db-health-sync', schedule: '0 * * * *', handler: syncDbHealth },
+  { name: 'automation-health-sync', schedule: '*/12 * * * *', handler: syncAutomationHealth },
+  { 
+    name: 'metrics-cleanup', 
+    schedule: '0 2 * * *', 
+    handler: async () => {
+      const deletedCount = await cleanupMetrics();
+      console.log(`[sync] Cleaned up ${deletedCount} old metrics`);
+    }
+  },
 ];
-
-const missingEnvWarning = () => {
-  console.warn('[cron] API_URL and INTERNAL_SECRET must be set; skipping scheduler initialization');
-};
 
 const scheduleJob = (job: CronJobConfig) => {
   cron.schedule(job.schedule, async () => {
     const startTime = new Date().toISOString();
     console.log(`[cron] ${job.name} started at ${startTime} (schedule: ${job.schedule})`);
     try {
-      await axios.post(
-        `${apiUrl}${job.endpoint}`,
-        {},
-        {
-          headers: {
-            'X-Internal-Secret': internalSecret ?? '',
-          },
-        }
-      );
+      await job.handler();
       const endTime = new Date().toISOString();
       console.log(`[cron] ${job.name} completed successfully at ${endTime}`);
     } catch (error: any) {
       const endTime = new Date().toISOString();
       console.error(`[cron] ${job.name} failed at ${endTime}: ${error?.message ?? 'unknown error'}`);
+      if (error.stack) {
+        console.error(`[cron] ${job.name} error stack:`, error.stack);
+      }
     }
   });
 };
 
 export const startScheduler = (): void => {
-  if (!apiUrl || !internalSecret) {
-    missingEnvWarning();
-    return;
-  }
-
   console.log('[cron] ========================================');
   console.log('[cron] Scheduler Initializing...');
-  console.log('[cron] API URL:', apiUrl);
   console.log('[cron] Scheduled Jobs:');
   jobs.forEach((job) => {
     console.log(`[cron]   - ${job.name}: ${job.schedule} (${getScheduleDescription(job.schedule)})`);
