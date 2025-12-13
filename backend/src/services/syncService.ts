@@ -177,7 +177,13 @@ export const syncDeploys = async (): Promise<void> => {
   for (const service of renderServices) {
     try {
       console.log(`[sync] Syncing Render deploys for service: ${service.name} (${service.providerInternalId})`);
-      const deploys = await renderApi.getServiceDeploys(service.providerInternalId);
+      const deployResponse = await renderApi.getServiceDeploys(service.providerInternalId);
+      
+      // Render API returns { deploy: [...], cursor: ... } or just an array
+      const deploys = Array.isArray(deployResponse) 
+        ? deployResponse 
+        : (deployResponse?.deploy || []);
+      
       if (deploys && deploys.length > 0) {
         const latestDeploy = deploys[0];
         const deployDate = parseDeployDate(latestDeploy);
@@ -324,7 +330,13 @@ const syncMongoDBAtlasClusters = async (): Promise<void> => {
       // Only mark as "down" if it's a real error, not a configuration issue
       // If credentials are wrong or cluster not found, keep status as "unknown"
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.warn(`[sync] Authentication failed for ${service.name}. Check MongoDB Atlas API credentials.`);
+        console.warn(`[sync] Authentication failed for ${service.name}.`);
+        console.warn(`[sync] Possible causes:`);
+        console.warn(`[sync]   1. MongoDB Atlas API keys (MONGODB_ATLAS_API_PUBLIC_KEY / MONGODB_ATLAS_API_PRIVATE_KEY) are incorrect`);
+        console.warn(`[sync]   2. API keys don't have access to project ${projectId}`);
+        console.warn(`[sync]   3. API keys are expired or revoked`);
+        console.warn(`[sync]   4. Project ID ${projectId} doesn't exist or you don't have access to it`);
+        console.warn(`[sync] How to fix: Check your MongoDB Atlas API keys in Account Settings → API Keys and ensure they have access to this project.`);
         await serviceService.updateService(service._id.toString(), {
           status: 'unknown',
           lastCheckedAt: new Date(),
