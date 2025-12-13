@@ -52,6 +52,38 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceType, service, onSave,
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Helper function to get provider-specific field labels and placeholders
+  const getProviderFieldInfo = () => {
+    switch (formData.provider) {
+      case 'render':
+        return {
+          label: 'Render Service ID',
+          placeholder: 'e.g., srv-d4qcccjuibrs73dj64d0',
+          helpText: 'Find this in your Render dashboard under the service settings'
+        };
+      case 'netlify':
+        return {
+          label: 'Netlify Site ID',
+          placeholder: 'e.g., a8ee0591-35af-4cf6-9043-48ed21e1432e',
+          helpText: 'Find this in your Netlify dashboard under Site settings → General'
+        };
+      case 'mongodb_atlas':
+        return {
+          label: 'Cluster Name',
+          placeholder: 'e.g., Cluster0 or prodDB',
+          helpText: 'The name of your MongoDB Atlas cluster (not the project ID). Find it in MongoDB Atlas → Your Project → Clusters'
+        };
+      default:
+        return {
+          label: 'Provider Internal ID',
+          placeholder: 'e.g., service-id-123',
+          helpText: ''
+        };
+    }
+  };
+
+  const providerFieldInfo = getProviderFieldInfo();
+
   return (
     <form className="service-form" onSubmit={handleSubmit}>
       <div className="form-group">
@@ -88,7 +120,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceType, service, onSave,
 
       <div className="form-group">
         <label htmlFor="providerInternalId">
-          Provider Internal ID <span className="required">*</span>
+          {providerFieldInfo.label} <span className="required">*</span>
         </label>
         <input
           type="text"
@@ -96,25 +128,37 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceType, service, onSave,
           value={formData.providerInternalId || ''}
           onChange={(e) => handleChange('providerInternalId', e.target.value)}
           required
-          placeholder={formData.provider === 'mongodb_atlas' ? 'e.g., Cluster0 (cluster name)' : 'e.g., service-id-123'}
+          placeholder={providerFieldInfo.placeholder}
         />
+        {providerFieldInfo.helpText && (
+          <small className="form-help">{providerFieldInfo.helpText}</small>
+        )}
       </div>
 
       {formData.provider === 'mongodb_atlas' && (
-        <div className="form-group">
+        <div className="form-group mongodb-atlas-group">
+          <div className="form-section-header">
+            <h4>MongoDB Atlas Project</h4>
+            <small className="form-section-subtitle">
+              MongoDB Atlas organizes clusters within projects. Specify which project this cluster belongs to.
+            </small>
+          </div>
           <label htmlFor="mongodbAtlasProjectId">
-            MongoDB Atlas Project ID
+            Project ID
           </label>
           <input
             type="text"
             id="mongodbAtlasProjectId"
             value={formData.mongodbAtlasProjectId || ''}
             onChange={(e) => handleChange('mongodbAtlasProjectId', e.target.value)}
-            placeholder="e.g., 69355fb7e6c67808372d472a (optional - uses env var if not set)"
+            placeholder="e.g., 69355fb7e6c67808372d472a"
           />
           <small className="form-help">
-            Only needed if this cluster is in a different MongoDB Atlas project than the default. 
-            If not specified, the system will use the MONGODB_ATLAS_PROJECT_ID environment variable.
+            <strong>Optional:</strong> Only needed if this cluster is in a different MongoDB Atlas project than your default.
+            <br />
+            <strong>How to find it:</strong> MongoDB Atlas → Your Project → Settings → Project ID
+            <br />
+            If left empty, the system will use the <code>MONGODB_ATLAS_PROJECT_ID</code> environment variable.
           </small>
         </div>
       )}
