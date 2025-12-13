@@ -4,15 +4,21 @@ import ServiceStatusBadge from '../components/ServiceStatusBadge';
 import AutomationStatusList from '../components/AutomationStatusList';
 import WorkItemList from '../components/WorkItemList';
 import MetricsChart from '../components/MetricsChart';
+import ServiceForm from '../components/ServiceForm';
 import { getMetricsByService } from '../api/metrics';
+import { updateService, deleteService } from '../api/services';
+import { Service } from '../api/projects';
 import { useState, useEffect } from 'react';
 import './ProjectDetailsPage.css';
 
 const ProjectDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { projectDetails, loading, error } = useProjectDetails(id || '');
+  const { projectDetails, loading, error, refetch } = useProjectDetails(id || '');
   const [metrics, setMetrics] = useState<Record<string, any[]>>({});
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [deletingService, setDeletingService] = useState<Service | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -48,14 +54,38 @@ const ProjectDetailsPage: React.FC = () => {
 
   const { project, services = [], workItems = [] } = projectDetails;
 
-  // Debug logging - very explicit
-  console.log('=== PROJECT DETAILS DEBUG ===');
-  console.log('Full projectDetails:', projectDetails);
-  console.log('Services array:', services);
-  console.log('Services type:', typeof services);
-  console.log('Services is array?', Array.isArray(services));
-  console.log('Services length:', services?.length);
-  console.log('Services content:', JSON.stringify(services, null, 2));
+  const handleEditService = (service: Service) => {
+    setEditingService(service);
+  };
+
+  const handleSaveService = async (serviceData: Partial<Service>) => {
+    if (!editingService) return;
+    
+    try {
+      await updateService(editingService._id, serviceData);
+      setEditingService(null);
+      refetch(); // Refresh project details
+    } catch (error: any) {
+      console.error('Failed to update service:', error);
+      alert(error.response?.data?.message || 'Failed to update service');
+    }
+  };
+
+  const handleDeleteService = async () => {
+    if (!deletingService) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteService(deletingService._id);
+      setDeletingService(null);
+      refetch(); // Refresh project details
+    } catch (error: any) {
+      console.error('Failed to delete service:', error);
+      alert(error.response?.data?.message || 'Failed to delete service');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="project-details-page">
@@ -122,6 +152,22 @@ const ProjectDetailsPage: React.FC = () => {
                       <h3>{service.name || 'Unnamed Service'}</h3>
                       <span className="service-type">{service.type}</span>
                       <span className="service-provider">{service.provider}</span>
+                      <div className="service-actions">
+                        <button
+                          onClick={() => handleEditService(service)}
+                          className="btn-edit"
+                          title="Edit service"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => setDeletingService(service)}
+                          className="btn-delete"
+                          title="Delete service"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                     <ServiceStatusBadge service={service} />
                     {service.url && (
@@ -156,6 +202,56 @@ const ProjectDetailsPage: React.FC = () => {
 
         <WorkItemList workItems={workItems} />
       </div>
+
+      {/* Edit Service Modal */}
+      {editingService && (
+        <div className="modal-overlay" onClick={() => setEditingService(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Service</h2>
+              <button className="modal-close" onClick={() => setEditingService(null)}>×</button>
+            </div>
+            <ServiceForm
+              serviceType={editingService.type as 'backend' | 'frontend' | 'db' | 'automation'}
+              service={editingService}
+              onSave={handleSaveService}
+              onCancel={() => setEditingService(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingService && (
+        <div className="modal-overlay" onClick={() => setDeletingService(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Delete Service</h2>
+              <button className="modal-close" onClick={() => setDeletingService(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete the service <strong>{deletingService.name}</strong>?</p>
+              <p className="warning-text">This action cannot be undone.</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => setDeletingService(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-danger"
+                onClick={handleDeleteService}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
