@@ -71,7 +71,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ data, metricName }) => {
           <XAxis dataKey="name" />
           <YAxis domain={[0, 1]} />
           <Tooltip
-            formatter={(value: any, name: any, props: any) => {
+            formatter={(value: any, _name: any, props: any) => {
               // Show original status string in tooltip for health/automation_status
               if (metricName === 'health' || metricName === 'automation_status') {
                 const originalValue = props.payload?.originalValue || value;
