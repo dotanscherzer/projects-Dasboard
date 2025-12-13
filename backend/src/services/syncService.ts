@@ -177,12 +177,15 @@ export const syncDeploys = async (): Promise<void> => {
   for (const service of renderServices) {
     try {
       console.log(`[sync] Syncing Render deploys for service: ${service.name} (${service.providerInternalId})`);
-      const deployResponse = await renderApi.getServiceDeploys(service.providerInternalId);
+      const deployResponse: any = await renderApi.getServiceDeploys(service.providerInternalId);
       
       // Render API returns { deploy: [...], cursor: ... } or just an array
-      const deploys = Array.isArray(deployResponse) 
-        ? deployResponse 
-        : (deployResponse?.deploy || []);
+      let deploys: any[] = [];
+      if (Array.isArray(deployResponse)) {
+        deploys = deployResponse;
+      } else if (deployResponse && typeof deployResponse === 'object' && 'deploy' in deployResponse) {
+        deploys = Array.isArray(deployResponse.deploy) ? deployResponse.deploy : [];
+      }
       
       if (deploys && deploys.length > 0) {
         const latestDeploy = deploys[0];
