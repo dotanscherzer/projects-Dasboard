@@ -6,6 +6,46 @@ import { renderApi } from '../integrations';
 import { netlifyApi } from '../integrations';
 import { mongodbAtlasApi } from '../integrations';
 
+/**
+ * Safely parse a date from a deploy object, trying multiple possible field names
+ * @param deploy - The deploy object from Render or Netlify API
+ * @returns A valid Date object, or null if no valid date can be found
+ */
+const parseDeployDate = (deploy: any): Date | null => {
+  if (!deploy || typeof deploy !== 'object') {
+    return null;
+  }
+
+  // Try multiple possible date field names (common variations)
+  const dateFields = ['createdAt', 'created_at', 'created', 'finishedAt', 'finished_at', 'finished', 'updatedAt', 'updated_at'];
+  
+  for (const field of dateFields) {
+    const dateValue = deploy[field];
+    
+    if (dateValue === null || dateValue === undefined) {
+      continue;
+    }
+    
+    // If it's already a Date object, validate it
+    if (dateValue instanceof Date) {
+      if (!isNaN(dateValue.getTime())) {
+        return dateValue;
+      }
+      continue;
+    }
+    
+    // If it's a string or number, try to parse it
+    if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+      const parsedDate = new Date(dateValue);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+  }
+  
+  return null;
+};
+
 export const syncHealth = async (): Promise<void> => {
   console.log('[sync] Starting health sync...');
   
@@ -129,17 +169,35 @@ export const syncHealth = async (): Promise<void> => {
 };
 
 export const syncDeploys = async (): Promise<void> => {
+  console.log('[sync] Starting deploy sync...');
+  
   // Sync Render deploys
   const renderServices = await Service.find({ provider: 'render' });
+  console.log(`[sync] Found ${renderServices.length} Render service(s) to sync deploys`);
   for (const service of renderServices) {
     try {
+      console.log(`[sync] Syncing Render deploys for service: ${service.name} (${service.providerInternalId})`);
       const deploys = await renderApi.getServiceDeploys(service.providerInternalId);
       if (deploys && deploys.length > 0) {
         const latestDeploy = deploys[0];
-        await serviceService.updateService(service._id.toString(), {
-          lastDeployAt: new Date(latestDeploy.createdAt),
-          lastCheckedAt: new Date(),
-        });
+        const deployDate = parseDeployDate(latestDeploy);
+        
+        if (deployDate) {
+          await serviceService.updateService(service._id.toString(), {
+            lastDeployAt: deployDate,
+            lastCheckedAt: new Date(),
+          });
+          console.log(`[sync] Updated ${service.name} lastDeployAt to: ${deployDate.toISOString()}`);
+        } else {
+          console.warn(`[sync] Could not parse deploy date for ${service.name}. Available fields:`, Object.keys(latestDeploy));
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[sync] Deploy object structure:`, JSON.stringify(latestDeploy, null, 2).substring(0, 500));
+          }
+          // Still update lastCheckedAt even if we can't parse the deploy date
+          await serviceService.updateService(service._id.toString(), {
+            lastCheckedAt: new Date(),
+          });
+        }
 
         // Create metric
         await metricService.createMetric({
@@ -148,23 +206,44 @@ export const syncDeploys = async (): Promise<void> => {
           metricValue: latestDeploy.status || 'unknown',
           collectedAt: new Date(),
         });
+      } else {
+        console.log(`[sync] No deploys found for ${service.name}`);
       }
     } catch (error: any) {
-      console.error(`Error syncing Render deploys for service ${service._id}:`, error.message);
+      console.error(`[sync] Error syncing Render deploys for service ${service.name} (${service._id}):`, error.message);
+      if (error.stack) {
+        console.error(`[sync] Error stack:`, error.stack);
+      }
     }
   }
 
   // Sync Netlify deploys
   const netlifyServices = await Service.find({ provider: 'netlify' });
+  console.log(`[sync] Found ${netlifyServices.length} Netlify service(s) to sync deploys`);
   for (const service of netlifyServices) {
     try {
+      console.log(`[sync] Syncing Netlify deploys for service: ${service.name} (${service.providerInternalId})`);
       const deploys = await netlifyApi.getSiteDeploys(service.providerInternalId);
       if (deploys && deploys.length > 0) {
         const latestDeploy = deploys[0];
-        await serviceService.updateService(service._id.toString(), {
-          lastDeployAt: new Date(latestDeploy.created_at),
-          lastCheckedAt: new Date(),
-        });
+        const deployDate = parseDeployDate(latestDeploy);
+        
+        if (deployDate) {
+          await serviceService.updateService(service._id.toString(), {
+            lastDeployAt: deployDate,
+            lastCheckedAt: new Date(),
+          });
+          console.log(`[sync] Updated ${service.name} lastDeployAt to: ${deployDate.toISOString()}`);
+        } else {
+          console.warn(`[sync] Could not parse deploy date for ${service.name}. Available fields:`, Object.keys(latestDeploy));
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[sync] Deploy object structure:`, JSON.stringify(latestDeploy, null, 2).substring(0, 500));
+          }
+          // Still update lastCheckedAt even if we can't parse the deploy date
+          await serviceService.updateService(service._id.toString(), {
+            lastCheckedAt: new Date(),
+          });
+        }
 
         // Create metric
         await metricService.createMetric({
@@ -173,20 +252,28 @@ export const syncDeploys = async (): Promise<void> => {
           metricValue: latestDeploy.state || 'unknown',
           collectedAt: new Date(),
         });
+      } else {
+        console.log(`[sync] No deploys found for ${service.name}`);
       }
     } catch (error: any) {
-      console.error(`Error syncing Netlify deploys for service ${service._id}:`, error.message);
+      console.error(`[sync] Error syncing Netlify deploys for service ${service.name} (${service._id}):`, error.message);
+      if (error.stack) {
+        console.error(`[sync] Error stack:`, error.stack);
+      }
     }
   }
+  
+  console.log('[sync] Deploy sync completed');
 };
 
 // Internal function to sync MongoDB Atlas clusters (used by both health-sync and db-health-sync)
 const syncMongoDBAtlasClusters = async (): Promise<void> => {
-  // Check if MongoDB Atlas API credentials are configured
+  // Check if MongoDB Atlas API credentials are configured (keys are required, project ID can come from service)
   const { config } = await import('../config/env');
-  if (!config.mongodbAtlasApiPublicKey || !config.mongodbAtlasApiPrivateKey || !config.mongodbAtlasProjectId) {
+  if (!config.mongodbAtlasApiPublicKey || !config.mongodbAtlasApiPrivateKey) {
     console.warn('[sync] MongoDB Atlas API credentials not configured. Skipping DB health sync.');
-    console.warn('[sync] Required: MONGODB_ATLAS_API_PUBLIC_KEY, MONGODB_ATLAS_API_PRIVATE_KEY, MONGODB_ATLAS_PROJECT_ID');
+    console.warn('[sync] Required: MONGODB_ATLAS_API_PUBLIC_KEY, MONGODB_ATLAS_API_PRIVATE_KEY');
+    console.warn('[sync] Note: MONGODB_ATLAS_PROJECT_ID can be set per service or as environment variable fallback');
     return;
   }
 
@@ -196,15 +283,29 @@ const syncMongoDBAtlasClusters = async (): Promise<void> => {
   
   for (const service of atlasServices) {
     try {
-      console.log(`[sync] Syncing MongoDB Atlas service: ${service.name} (${service.providerInternalId})`);
-      const clusterData = await mongodbAtlasApi.getClusterHealth(service.providerInternalId);
+      // Use service-specific project ID if available, otherwise fall back to environment variable
+      const projectId = (service as any).mongodbAtlasProjectId || config.mongodbAtlasProjectId;
+      
+      if (!projectId) {
+        console.warn(`[sync] Skipping ${service.name}: No MongoDB Atlas project ID found (neither in service nor environment variable)`);
+        await serviceService.updateService(service._id.toString(), {
+          status: 'unknown',
+          lastCheckedAt: new Date(),
+        });
+        continue;
+      }
+      
+      const projectIdSource = (service as any).mongodbAtlasProjectId ? 'service' : 'environment';
+      console.log(`[sync] Syncing MongoDB Atlas service: ${service.name} (cluster: ${service.providerInternalId}, project: ${projectId} [${projectIdSource}])`);
+      
+      const clusterData = await mongodbAtlasApi.getClusterHealth(service.providerInternalId, projectId);
       const status = clusterData.stateName === 'IDLE' ? 'up' : 'degraded';
       await serviceService.updateService(service._id.toString(), {
         status,
         lastCheckedAt: new Date(),
         providerStatus: clusterData,
       });
-      console.log(`[sync] Updated ${service.name} status to: ${status} (cluster state: ${clusterData.stateName})`);
+      console.log(`[sync] Updated ${service.name} status to: ${status} (cluster state: ${clusterData.stateName}, project: ${projectId})`);
 
       // Create metric
       await metricService.createMetric({
@@ -214,7 +315,9 @@ const syncMongoDBAtlasClusters = async (): Promise<void> => {
         collectedAt: new Date(),
       });
     } catch (error: any) {
+      const projectId = (service as any).mongodbAtlasProjectId || config.mongodbAtlasProjectId;
       console.error(`[sync] Error syncing MongoDB Atlas service ${service.name} (${service._id}):`, error.message);
+      console.error(`[sync] Project ID used: ${projectId || 'none'}`);
       if (error.response) {
         console.error(`[sync] API response status: ${error.response.status}, data:`, error.response.data);
       }
@@ -228,6 +331,7 @@ const syncMongoDBAtlasClusters = async (): Promise<void> => {
         });
       } else if (error.response?.status === 404) {
         console.warn(`[sync] Cluster not found for ${service.name}. Check if providerInternalId (${service.providerInternalId}) is correct (should be cluster name, not project ID).`);
+        console.warn(`[sync] Project ID used: ${projectId || 'none'}`);
         await serviceService.updateService(service._id.toString(), {
           status: 'unknown',
           lastCheckedAt: new Date(),

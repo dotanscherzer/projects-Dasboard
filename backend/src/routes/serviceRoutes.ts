@@ -62,6 +62,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       type,
       provider,
       providerInternalId,
+      mongodbAtlasProjectId,
       url,
       dashboardUrl,
       region,
@@ -92,6 +93,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       type,
       provider,
       providerInternalId,
+      mongodbAtlasProjectId,
       url,
       dashboardUrl,
       region,
@@ -130,6 +132,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       type,
       provider,
       providerInternalId,
+      mongodbAtlasProjectId,
       url,
       dashboardUrl,
       region,
@@ -147,6 +150,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     if (type) service.type = type;
     if (provider) service.provider = provider;
     if (providerInternalId) service.providerInternalId = providerInternalId;
+    if (mongodbAtlasProjectId !== undefined) (service as any).mongodbAtlasProjectId = mongodbAtlasProjectId;
     if (url !== undefined) service.url = url;
     if (dashboardUrl !== undefined) service.dashboardUrl = dashboardUrl;
     if (region !== undefined) service.region = region;

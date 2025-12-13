@@ -14,6 +14,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceType, service, onSave,
     name: service?.name || '',
     provider: service?.provider || (serviceType === 'backend' ? 'render' : serviceType === 'frontend' ? 'netlify' : serviceType === 'db' ? 'mongodb_atlas' : 'make'),
     providerInternalId: service?.providerInternalId || '',
+    mongodbAtlasProjectId: service?.mongodbAtlasProjectId || '',
     url: service?.url || '',
     dashboardUrl: service?.dashboardUrl || '',
     region: service?.region || '',
@@ -95,9 +96,28 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceType, service, onSave,
           value={formData.providerInternalId || ''}
           onChange={(e) => handleChange('providerInternalId', e.target.value)}
           required
-          placeholder="e.g., service-id-123"
+          placeholder={formData.provider === 'mongodb_atlas' ? 'e.g., Cluster0 (cluster name)' : 'e.g., service-id-123'}
         />
       </div>
+
+      {formData.provider === 'mongodb_atlas' && (
+        <div className="form-group">
+          <label htmlFor="mongodbAtlasProjectId">
+            MongoDB Atlas Project ID
+          </label>
+          <input
+            type="text"
+            id="mongodbAtlasProjectId"
+            value={formData.mongodbAtlasProjectId || ''}
+            onChange={(e) => handleChange('mongodbAtlasProjectId', e.target.value)}
+            placeholder="e.g., 69355fb7e6c67808372d472a (optional - uses env var if not set)"
+          />
+          <small className="form-help">
+            Only needed if this cluster is in a different MongoDB Atlas project than the default. 
+            If not specified, the system will use the MONGODB_ATLAS_PROJECT_ID environment variable.
+          </small>
+        </div>
+      )}
 
       <div className="form-group">
         <label htmlFor="url">URL</label>

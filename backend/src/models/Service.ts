@@ -6,6 +6,7 @@ export interface IService extends Document {
   type: 'backend' | 'frontend' | 'db' | 'worker' | 'automation' | 'other';
   provider: 'render' | 'netlify' | 'mongodb_atlas' | 'make' | 'supabase' | 'other';
   providerInternalId: string; // Required unique identifier for querying services
+  mongodbAtlasProjectId?: string; // MongoDB Atlas project ID (only for mongodb_atlas provider)
   url?: string;
   dashboardUrl?: string;
   region?: string;
@@ -49,6 +50,10 @@ const ServiceSchema = new Schema<IService>(
       required: true,
       trim: true,
       index: true,
+    },
+    mongodbAtlasProjectId: {
+      type: String,
+      trim: true,
     },
     url: {
       type: String,

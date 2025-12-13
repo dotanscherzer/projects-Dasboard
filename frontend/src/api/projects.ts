@@ -30,6 +30,7 @@ export interface Service {
   type: 'backend' | 'frontend' | 'db' | 'worker' | 'automation' | 'other';
   provider: 'render' | 'netlify' | 'mongodb_atlas' | 'make' | 'supabase' | 'other';
   providerInternalId: string;
+  mongodbAtlasProjectId?: string;
   url?: string;
   dashboardUrl?: string;
   region?: string;

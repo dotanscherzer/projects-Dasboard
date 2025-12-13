@@ -32,9 +32,15 @@ class MongoDBAtlasAPI {
     return `Digest username="${this.publicKey}", realm="MMS Public API", nonce="${timestamp}", uri="${path}", response="${signature}", opaque=""`;
   }
 
-  async getClusterHealth(clusterName: string): Promise<any> {
+  async getClusterHealth(clusterName: string, projectId?: string): Promise<any> {
     try {
-      const path = `/groups/${this.projectId}/clusters/${clusterName}/status`;
+      // Use provided projectId or fall back to instance projectId (from env var)
+      const targetProjectId = projectId || this.projectId;
+      if (!targetProjectId) {
+        throw new Error('MongoDB Atlas project ID is required');
+      }
+      
+      const path = `/groups/${targetProjectId}/clusters/${clusterName}/status`;
       const method = 'GET';
       const authHeader = this.generateAuthHeader(method, path);
 
@@ -46,14 +52,20 @@ class MongoDBAtlasAPI {
 
       return response.data;
     } catch (error: any) {
-      console.error(`Error fetching MongoDB Atlas cluster health for ${clusterName}:`, error.message);
+      console.error(`Error fetching MongoDB Atlas cluster health for ${clusterName} in project ${projectId || this.projectId}:`, error.message);
       throw error;
     }
   }
 
-  async getAllClusters(): Promise<any[]> {
+  async getAllClusters(projectId?: string): Promise<any[]> {
     try {
-      const path = `/groups/${this.projectId}/clusters`;
+      // Use provided projectId or fall back to instance projectId (from env var)
+      const targetProjectId = projectId || this.projectId;
+      if (!targetProjectId) {
+        throw new Error('MongoDB Atlas project ID is required');
+      }
+      
+      const path = `/groups/${targetProjectId}/clusters`;
       const method = 'GET';
       const authHeader = this.generateAuthHeader(method, path);
 
@@ -65,7 +77,7 @@ class MongoDBAtlasAPI {
 
       return response.data.results || [];
     } catch (error: any) {
-      console.error('Error fetching all MongoDB Atlas clusters:', error.message);
+      console.error(`Error fetching all MongoDB Atlas clusters for project ${projectId || this.projectId}:`, error.message);
       throw error;
     }
   }
