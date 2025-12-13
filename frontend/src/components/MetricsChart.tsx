@@ -2,8 +2,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import './MetricsChart.css';
 
 interface MetricData {
-  name: string;
-  value: number | string;
+  _id: string;
+  serviceId: string | object;
+  metricName: string;
+  metricValue: string | number | object;
   collectedAt: string;
 }
 
@@ -57,8 +59,8 @@ const MetricsChart: React.FC<MetricsChartProps> = ({ data, metricName }) => {
     .reverse()
     .map((item) => ({
       name: new Date(item.collectedAt).toLocaleTimeString(),
-      value: convertToNumericValue(item.value, metricName),
-      originalValue: item.value, // Preserve original for tooltip
+      value: convertToNumericValue(item.metricValue, metricName),
+      originalValue: item.metricValue, // Preserve original for tooltip
       fullDate: new Date(item.collectedAt).toLocaleString(),
     }));
 
