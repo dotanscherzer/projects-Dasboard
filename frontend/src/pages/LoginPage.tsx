@@ -10,6 +10,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
@@ -17,11 +18,14 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setLoadingMessage(isLogin ? 'Connecting to server...' : 'Connecting to server...');
 
     try {
       if (isLogin) {
+        setLoadingMessage('Waking up service...');
         await login(email, password);
       } else {
+        setLoadingMessage('Waking up service...');
         await register(username, email, password);
       }
       navigate('/');
@@ -31,6 +35,7 @@ const LoginPage: React.FC = () => {
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -85,7 +90,7 @@ const LoginPage: React.FC = () => {
             />
           </div>
           <button type="submit" disabled={loading} className="login-button">
-            {loading ? (isLogin ? 'Logging in...' : 'Registering...') : (isLogin ? 'Login' : 'Register')}
+            {loading ? (loadingMessage || (isLogin ? 'Logging in...' : 'Registering...')) : (isLogin ? 'Login' : 'Register')}
           </button>
           <div className="toggle-mode">
             <button
