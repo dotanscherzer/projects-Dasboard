@@ -1,0 +1,48 @@
+name: projects-dashboard
+
+networks:
+  traefik-public:
+    external: true
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: projects-dashboard-api:local
+    container_name: projects-dashboard-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+      FRONTEND_URL: https://projects.dotai.online
+    networks:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.projects-api.rule=Host(`api.projects.dotai.online`)
+      - traefik.http.routers.projects-api.entrypoints=websecure
+      - traefik.http.routers.projects-api.tls.certresolver=letsencrypt
+      - traefik.http.services.projects-api.loadbalancer.server.port=3000
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_API_URL: https://api.projects.dotai.online
+    image: projects-dashboard-web:local
+    container_name: projects-dashboard-web
+    restart: unless-stopped
+    networks:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.http.routers.projects-app.rule=Host(`projects.dotai.online`)
+      - traefik.http.routers.projects-app.entrypoints=websecure
+      - traefik.http.routers.projects-app.tls.certresolver=letsencrypt
+      - traefik.http.services.projects-app.loadbalancer.server.port=80
