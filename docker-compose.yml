@@ -7,13 +7,11 @@ networks:
 services:
   api:
     build:
-      context: .
-      dockerfile: Dockerfile.api
+      context: /opt/projects-dashboard
+      dockerfile: /opt/projects-dashboard/Dockerfile.api
     image: projects-dashboard-api:local
     container_name: projects-dashboard-api
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       PORT: "3000"
       NODE_ENV: production
@@ -30,8 +28,8 @@ services:
 
   web:
     build:
-      context: .
-      dockerfile: Dockerfile.web
+      context: /opt/projects-dashboard
+      dockerfile: /opt/projects-dashboard/Dockerfile.web
       args:
         VITE_API_URL: https://api.projects.dotai.online
     image: projects-dashboard-web:local
