@@ -40,7 +40,17 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public
-      - traefik.http.routers.projects-app.rule=Host(`app.projects.dotai.online`)
-      - traefik.http.routers.projects-app.entrypoints=websecure
-      - traefik.http.routers.projects-app.tls.certresolver=letsencrypt
-      - traefik.http.services.projects-app.loadbalancer.server.port=80
+      # Distinct router name avoids clashes with other stacks on the same Traefik (was projects-app).
+      - traefik.http.routers.projects-dashboard-web.rule=Host(`app.projects.dotai.online`)
+      - traefik.http.routers.projects-dashboard-web.entrypoints=websecure
+      - traefik.http.routers.projects-dashboard-web.tls=true
+      - traefik.http.routers.projects-dashboard-web.tls.certresolver=letsencrypt
+      - "traefik.http.routers.projects-dashboard-web.tls.domains[0].main=app.projects.dotai.online"
+      - traefik.http.services.projects-dashboard-web.loadbalancer.server.port=80
+      # HTTP entrypoint: redirect to HTTPS (Traefik still serves ACME HTTP-01 before this applies).
+      - traefik.http.middlewares.projects-dashboard-web-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.projects-dashboard-web-https.redirectscheme.permanent=true
+      - traefik.http.routers.projects-dashboard-web-http.rule=Host(`app.projects.dotai.online`)
+      - traefik.http.routers.projects-dashboard-web-http.entrypoints=web
+      - traefik.http.routers.projects-dashboard-web-http.middlewares=projects-dashboard-web-https
+      - traefik.http.routers.projects-dashboard-web-http.service=projects-dashboard-web
